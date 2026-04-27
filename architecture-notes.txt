@@ -1,0 +1,237 @@
+# Architecture Notes – Content Broadcasting System
+
+## 1. Authentication & RBAC
+
+The system uses JWT (JSON Web Token) for authentication.
+
+* When a user logs in, a JWT token is generated containing:
+
+  * user id
+  * email
+  * role (teacher / principal)
+
+* This token is sent in the Authorization header:
+  Bearer <token>
+
+* Middleware used:
+
+  * verifyToken → validates JWT and extracts user info
+  * authorizeRoles → restricts access based on role
+
+Role-based access:
+
+* Teacher:
+
+  * Upload content
+* Principal:
+
+  * Approve / Reject content
+
+This ensures secure and controlled access to APIs.
+
+---
+
+## 2. Upload Handling
+
+File uploads are handled using Multer.
+
+* Storage:
+
+  * Files are stored locally in the `/uploads` folder
+
+* Supported formats:
+
+  * JPG, PNG, GIF
+
+* File size limit:
+
+  * 10MB
+
+* Each upload stores:
+
+  * file_url (path)
+  * file_type
+  * file_size
+
+Validation ensures only valid files are uploaded.
+
+---
+
+## 3. Approval Workflow
+
+Content follows a defined lifecycle:
+
+uploaded → pending → approved / rejected
+
+Flow:
+
+1. Teacher uploads content → status = pending
+2. Principal reviews content
+3. Principal can:
+
+   * Approve → status = approved
+   * Reject → status = rejected + rejection_reason
+
+Only approved content is eligible for broadcasting.
+
+---
+
+## 4. Scheduling Logic
+
+Each content has:
+
+* start_time
+* end_time
+
+Rules:
+
+* If start_time or end_time is missing → content is ignored
+* Content is considered active only if:
+  current_time >= start_time AND current_time <= end_time
+
+This ensures content is shown only within the teacher-defined time window.
+
+---
+
+## 5. Rotation Logic (Core Feature)
+
+Each content includes:
+
+* rotation_order (sequence)
+* duration (in minutes)
+
+Steps:
+
+1. Fetch all approved content for a teacher
+
+2. Filter content within active time window
+
+3. Sort content by rotation_order
+
+4. Calculate total cycle duration:
+   totalDuration = sum of all durations
+
+5. Determine current position in rotation:
+   currentSlot = Date.now() % (totalDuration in milliseconds)
+
+6. Iterate through content and pick the active one based on cumulative duration
+
+Example:
+
+* Content A → 1 min
+* Content B → 1 min
+* Content C → 1 min
+
+Rotation:
+Minute 1 → A
+Minute 2 → B
+Minute 3 → C
+Then repeat
+
+This ensures continuous looping and dynamic content broadcasting.
+
+---
+
+## 6. Database Design
+
+### Users Table
+
+* id
+* name
+* email
+* password
+* role (teacher / principal)
+* timestamps
+
+### Content Table
+
+* id
+* title
+* description
+* subject
+* file_url
+* file_type
+* file_size
+* uploaded_by
+* status
+* rejection_reason
+* approved_by
+* approved_at
+* start_time
+* end_time
+* rotation_order
+* duration
+* timestamps
+
+Design ensures:
+
+* clear relationships
+* support for scheduling
+* support for rotation logic
+
+---
+
+## 7. Folder Structure
+
+src/
+├── controllers/
+├── routes/
+├── models/
+├── middlewares/
+├── utils/
+├── config/
+└── app.js
+
+This modular structure improves maintainability and scalability.
+
+---
+
+## 8. Edge Case Handling
+
+The system handles:
+
+* No content available → returns empty response
+* Invalid teacher ID → returns empty response
+* Approved but not active → returns empty response
+* Missing rotation data → ignored safely
+* Invalid duration → handled without crash
+
+---
+
+## 9. Scalability Considerations
+
+* Code is modular (controllers, routes, services)
+* Can integrate Redis for caching live API
+* File storage can be moved to AWS S3
+* Rotation logic is efficient and time-based (no cron needed)
+
+
+
+## 10. Caching Strategy 
+
+To improve performance, the /content/live API can be cached using Redis.
+
+Since live content depends on time-based rotation, caching can be applied 
+for short durations (e.g., 30–60 seconds).
+
+Cache Key:
+- teacherId + subject
+
+Benefits:
+- Reduces database load
+- Improves response time for high traffic
+
+Currently, caching is not implemented to keep the system simple, 
+but the architecture supports easy integration of Redis in future.
+---
+
+## Conclusion
+
+The system is designed to:
+
+* be secure (JWT + RBAC)
+* handle real-world scheduling scenarios
+* provide dynamic content rotation
+* remain scalable and maintainable
+
+This architecture reflects real-world backend design practices.

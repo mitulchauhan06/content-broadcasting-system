@@ -15,7 +15,7 @@ export const getLiveContent = async (req, res) => {
 
    
     const now = new Date();
-    console.log("NOW (UTC):", now);
+    
 
     const contents = await Content.findAll({
       where: {
@@ -41,11 +41,7 @@ export const getLiveContent = async (req, res) => {
       const end = new Date(item.end_time);
 
 
-      console.log("---- CHECKING CONTENT ----");
-  console.log("START:", start);
-  console.log("END:", end);
-  console.log("NOW:", now);
-  console.log("RESULT:", now >= start && now <= end);
+     
 
       return now >= start && now <= end;
     });

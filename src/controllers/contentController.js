@@ -30,8 +30,7 @@ export const uploadContent = async (req, res) => {
      
     });
 
-    console.log("BODY:", req.body);
-console.log("FILE:", req.file);
+   
 
     res.json({
       message: "Content uploaded successfully",

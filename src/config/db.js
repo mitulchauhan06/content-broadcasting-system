@@ -1,26 +1,26 @@
 import { Sequelize } from "sequelize";
 import dotenv from "dotenv";
 
-dotenv.config( );
-
-
-
+dotenv.config();
 
 const sequelize = new Sequelize(
-  process.env.DB_NAME,
-  process.env.DB_USER,
+  "defaultdb",
+  "avnadmin",
   process.env.DB_PASSWORD,
-
- 
   {
-    host: process.env.DB_HOST,
+    host: "mysql-a55c7ce-content-broadcasting.a.aivencloud.com",
+    port: 20439,
     dialect: "mysql",
     logging: false,
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false
+      }
+    }
   }
-
-
 );
 
-
-
 export default sequelize;
+
+
